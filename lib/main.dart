@@ -42,7 +42,6 @@ class _MyPasswordAppState extends State<MyPasswordApp> {
     );
   }
 }
-
 class PasswordHomeScreen extends StatefulWidget {
   final bool isDark;
   final Function(bool) toggleDarkMode;
