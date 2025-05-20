@@ -1,133 +1,260 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 
 void main() {
-  runApp(const PasswordGeneratorApp());
+  runApp(const MyPasswordApp());
 }
 
-class PasswordGeneratorApp extends StatelessWidget {
-  const PasswordGeneratorApp({super.key});
+class MyPasswordApp extends StatefulWidget {
+  const MyPasswordApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyPasswordApp> createState() => _MyPasswordAppState();
+}
+
+class _MyPasswordAppState extends State<MyPasswordApp> {
+  // Track if dark theme is on/off
+  bool darkModeOn = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Password Generator',
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-      home: const PasswordGeneratorHomePage(),
+      title: 'Simple Password Generator',
+      themeMode: darkModeOn ? ThemeMode.dark : ThemeMode.light,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blueGrey,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.blueGrey,
+      ),
+      home: PasswordHomeScreen(
+        isDark: darkModeOn,
+        toggleDarkMode: (val) {
+          setState(() {
+            darkModeOn = val;
+          });
+        },
+      ),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class PasswordGeneratorHomePage extends StatefulWidget {
-  const PasswordGeneratorHomePage({super.key});
+class PasswordHomeScreen extends StatefulWidget {
+  final bool isDark;
+  final Function(bool) toggleDarkMode;
+
+  const PasswordHomeScreen({
+    Key? key,
+    required this.isDark,
+    required this.toggleDarkMode,
+  }) : super(key: key);
 
   @override
-  State<PasswordGeneratorHomePage> createState() => _PasswordGeneratorHomePageState();
+  State<PasswordHomeScreen> createState() => _PasswordHomeScreenState();
 }
 
-class _PasswordGeneratorHomePageState extends State<PasswordGeneratorHomePage> {
-  double _length = 12;
-  bool _includeUppercase = true;
-  bool _includeLowercase = true;
-  bool _includeNumbers = true;
-  bool _includeSpecial = true;
-  String _generatedPassword = '';
+class _PasswordHomeScreenState extends State<PasswordHomeScreen>
+    with SingleTickerProviderStateMixin {
+  // User options
+  double passwordLength = 12;
+  bool useUppercase = true;
+  bool useLowercase = true;
+  bool useNumbers = true;
+  bool useSymbols = true;
 
-  final _random = Random();
+  String password = '';
 
-  void _generatePassword() {
-    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lower = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const special = '!@#\$%^&*()_+-=[]{}|;:,.<>?';
+  final _randomGen = Random();
 
-    String chars = '';
-    if (_includeUppercase) chars += upper;
-    if (_includeLowercase) chars += lower;
-    if (_includeNumbers) chars += numbers;
-    if (_includeSpecial) chars += special;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnim;
 
-    if (chars.isEmpty) {
+  @override
+  void initState() {
+    super.initState();
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void generatePassword() {
+    const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+    const numberChars = '0123456789';
+    const symbolChars = '!@#\$%^&*()-_=+[]{};:,.<>?';
+
+    String allowedChars = '';
+    if (useUppercase) allowedChars += uppercaseChars;
+    if (useLowercase) allowedChars += lowercaseChars;
+    if (useNumbers) allowedChars += numberChars;
+    if (useSymbols) allowedChars += symbolChars;
+
+    if (allowedChars.isEmpty) {
       setState(() {
-        _generatedPassword = 'Please select at least one character type.';
+        password = 'Please pick at least one character type!';
       });
       return;
     }
 
-    String password = List.generate(_length.toInt(), (index) => chars[_random.nextInt(chars.length)]).join();
+    String generated = List.generate(passwordLength.toInt(),
+            (index) => allowedChars[_randomGen.nextInt(allowedChars.length)])
+        .join();
+
     setState(() {
-      _generatedPassword = password;
+      password = generated;
     });
+
+    _animationController.forward(from: 0);
   }
 
-  void _copyToClipboard() {
-    if (_generatedPassword.isNotEmpty && !_generatedPassword.startsWith('Please')) {
-      Clipboard.setData(ClipboardData(text: _generatedPassword));
+  void copyPassword() {
+    if (password.isNotEmpty && !password.startsWith('Please')) {
+      Clipboard.setData(ClipboardData(text: password));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password copied to clipboard')),
+        const SnackBar(content: Text('Copied to clipboard!')),
       );
     }
   }
 
+  double getStrength() {
+    if (password.isEmpty || password.startsWith('Please')) return 0;
+
+    int typesCount = 0;
+    if (useUppercase) typesCount++;
+    if (useLowercase) typesCount++;
+    if (useNumbers) typesCount++;
+    if (useSymbols) typesCount++;
+
+    double lengthScore = (passwordLength - 8) / (32 - 8);
+    return (typesCount / 4) * 0.7 + lengthScore * 0.3;
+  }
+
+  String strengthLabel(double val) {
+    if (val < 0.3) return 'Weak';
+    if (val < 0.7) return 'Moderate';
+    return 'Strong';
+  }
+
+  Color strengthColor(double val) {
+    if (val < 0.3) return Colors.redAccent;
+    if (val < 0.7) return Colors.amber;
+    return Colors.green;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final strengthVal = getStrength();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Password Generator')),
+      appBar: AppBar(
+        title: const Text('Password Generator'),
+        actions: [
+          Row(
+            children: [
+              const Icon(Icons.wb_sunny_outlined),
+              Switch(
+                value: widget.isDark,
+                onChanged: widget.toggleDarkMode,
+                activeColor: Colors.yellow,
+              ),
+              const Icon(Icons.nights_stay_outlined),
+              const SizedBox(width: 12),
+            ],
+          ),
+        ],
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(15),
+        child: ListView(
           children: [
-            const Text('Password Length:'),
+            const Text('Choose password length'),
             Slider(
-              value: _length,
+              value: passwordLength,
               min: 8,
               max: 32,
               divisions: 24,
-              label: _length.toInt().toString(),
-              onChanged: (value) => setState(() => _length = value),
+              label: passwordLength.toInt().toString(),
+              onChanged: (val) {
+                setState(() {
+                  passwordLength = val;
+                });
+              },
             ),
             CheckboxListTile(
-              title: const Text('Include Uppercase Letters'),
-              value: _includeUppercase,
-              onChanged: (value) => setState(() => _includeUppercase = value!),
+              title: const Text('Use Uppercase Letters'),
+              value: useUppercase,
+              onChanged: (val) => setState(() => useUppercase = val!),
             ),
             CheckboxListTile(
-              title: const Text('Include Lowercase Letters'),
-              value: _includeLowercase,
-              onChanged: (value) => setState(() => _includeLowercase = value!),
+              title: const Text('Use Lowercase Letters'),
+              value: useLowercase,
+              onChanged: (val) => setState(() => useLowercase = val!),
             ),
             CheckboxListTile(
               title: const Text('Include Numbers'),
-              value: _includeNumbers,
-              onChanged: (value) => setState(() => _includeNumbers = value!),
+              value: useNumbers,
+              onChanged: (val) => setState(() => useNumbers = val!),
             ),
             CheckboxListTile(
-              title: const Text('Include Special Characters'),
-              value: _includeSpecial,
-              onChanged: (value) => setState(() => _includeSpecial = value!),
+              title: const Text('Include Symbols'),
+              value: useSymbols,
+              onChanged: (val) => setState(() => useSymbols = val!),
             ),
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: _generatePassword,
-                child: const Text('Generate Password'),
+                onPressed: generatePassword,
+                child: const Text('Generate'),
               ),
             ),
-            const SizedBox(height: 20),
-            SelectableText(
-              _generatedPassword,
-              style: const TextStyle(fontSize: 16),
+            const SizedBox(height: 30),
+            FadeTransition(
+              opacity: _fadeAnim,
+              child: SelectableText(
+                password,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
             ),
-            if (_generatedPassword.isNotEmpty && !_generatedPassword.startsWith('Please'))
-              IconButton(
-                icon: const Icon(Icons.copy),
-                tooltip: 'Copy to Clipboard',
-                onPressed: _copyToClipboard,
+            if (password.isNotEmpty && !password.startsWith('Please'))
+              Center(
+                child: IconButton(
+                  icon: const Icon(Icons.copy),
+                  iconSize: 30,
+                  tooltip: 'Copy password',
+                  onPressed: copyPassword,
+                ),
+              ),
+            const SizedBox(height: 20),
+            if (password.isNotEmpty && !password.startsWith('Please'))
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Strength: ${strengthLabel(strengthVal)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: strengthColor(strengthVal),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: strengthVal,
+                    backgroundColor: Colors.grey.shade300,
+                    color: strengthColor(strengthVal),
+                    minHeight: 8,
+                  ),
+                ],
               ),
           ],
         ),
