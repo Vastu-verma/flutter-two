@@ -14,7 +14,7 @@ class MyPasswordApp extends StatefulWidget {
 }
 
 class _MyPasswordAppState extends State<MyPasswordApp> {
-  // Track if dark theme is on/off
+  //Dark theme(on/off)
   bool darkModeOn = false;
 
   @override
@@ -25,11 +25,11 @@ class _MyPasswordAppState extends State<MyPasswordApp> {
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.blueGrey,
-      ),
+      ),//ThemeData
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.blueGrey,
-      ),
+      ),//ThemeData
       home: PasswordHomeScreen(
         isDark: darkModeOn,
         toggleDarkMode: (val) {
@@ -37,10 +37,10 @@ class _MyPasswordAppState extends State<MyPasswordApp> {
             darkModeOn = val;
           });
         },
-      ),
+      ),//PasswordHomeScreen
       debugShowCheckedModeBanner: false,
-    );
-  }
+    );//MaterialApp
+     }
 }
 class PasswordHomeScreen extends StatefulWidget {
   final bool isDark;
@@ -58,7 +58,7 @@ class PasswordHomeScreen extends StatefulWidget {
 
 class _PasswordHomeScreenState extends State<PasswordHomeScreen>
     with SingleTickerProviderStateMixin {
-  // User options
+  //UserOptions
   double passwordLength = 12;
   bool useUppercase = true;
   bool useLowercase = true;
@@ -165,13 +165,13 @@ class _PasswordHomeScreenState extends State<PasswordHomeScreen>
                 value: widget.isDark,
                 onChanged: widget.toggleDarkMode,
                 activeColor: Colors.yellow,
-              ),
+              ),//Switch
               const Icon(Icons.nights_stay_outlined),
               const SizedBox(width: 12),
             ],
-          ),
-        ],
-      ),
+          ),//Row
+     ],
+      ),//AppBar
       body: Padding(
         padding: const EdgeInsets.all(15),
         child: ListView(
@@ -188,34 +188,34 @@ class _PasswordHomeScreenState extends State<PasswordHomeScreen>
                   passwordLength = val;
                 });
               },
-            ),
+            ),//Slider
             CheckboxListTile(
               title: const Text('Use Uppercase Letters'),
               value: useUppercase,
               onChanged: (val) => setState(() => useUppercase = val!),
-            ),
+            ),//CheckBoxListTitle
             CheckboxListTile(
               title: const Text('Use Lowercase Letters'),
               value: useLowercase,
               onChanged: (val) => setState(() => useLowercase = val!),
-            ),
+            ),//CheckBoxListTitle
             CheckboxListTile(
               title: const Text('Include Numbers'),
               value: useNumbers,
               onChanged: (val) => setState(() => useNumbers = val!),
-            ),
+            ),//CheckBoxListTitle
             CheckboxListTile(
               title: const Text('Include Symbols'),
               value: useSymbols,
               onChanged: (val) => setState(() => useSymbols = val!),
-            ),
+            ),//CheckBoxListTitle
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
                 onPressed: generatePassword,
                 child: const Text('Generate'),
-              ),
-            ),
+              ),//ElevatedButton
+            ),//Center
             const SizedBox(height: 30),
             FadeTransition(
               opacity: _fadeAnim,
@@ -223,7 +223,7 @@ class _PasswordHomeScreenState extends State<PasswordHomeScreen>
                 password,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
-              ),
+              ),//SelectionText
             ),
             if (password.isNotEmpty && !password.startsWith('Please'))
               Center(
@@ -232,8 +232,8 @@ class _PasswordHomeScreenState extends State<PasswordHomeScreen>
                   iconSize: 30,
                   tooltip: 'Copy password',
                   onPressed: copyPassword,
-                ),
-              ),
+                ),//IconButton
+              ),//Center
             const SizedBox(height: 20),
             if (password.isNotEmpty && !password.startsWith('Please'))
               Column(
@@ -244,20 +244,20 @@ class _PasswordHomeScreenState extends State<PasswordHomeScreen>
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: strengthColor(strengthVal),
-                    ),
-                  ),
+                    ),//TextStyle
+                  ),//Text
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
                     value: strengthVal,
                     backgroundColor: Colors.grey.shade300,
                     color: strengthColor(strengthVal),
                     minHeight: 8,
-                  ),
+                  ),//LinearProgressIndicator
                 ],
-              ),
+              ),//Column
           ],
-        ),
-      ),
-    );
+        ),//Listview
+      ),//Padding
+    );//Scaffold
   }
 }
